@@ -1,0 +1,7 @@
+Makefile.PL
+MANIFEST
+Proxy.xs
+lib/PyPerl5/Util.pm
+lib/PyPerl5/Proxy.pm
+lib/PyPerl5/Loader.pm
+lib/PyPerl5/Boolean.pm
