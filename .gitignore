@@ -316,3 +316,7 @@ fabric.properties
 
 # perl library
 !perl/lib/
+
+*.iml
+.idea
+.envrc
