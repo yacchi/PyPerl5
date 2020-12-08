@@ -15,7 +15,6 @@ except ImportError:
 import os
 import subprocess
 import sys
-from distutils.command.build import build
 from distutils.sysconfig import get_python_inc
 from shlex import split
 from subprocess import call
@@ -83,16 +82,17 @@ data_files = [
 ]
 
 
-class Build(build):
+class Build(build_ext, object):
     def run(self):
         call(["perl", "-MDevel::PPPort", "-e", "Devel::PPPort::WriteFile('src/ppport.h')"])
-        ret = build.run(self)
+        ret = super(Build, self).run()
 
         os.chdir("perl")
         if not os.path.exists("Makefile"):
             call(["perl", "Makefile.PL"])
         call(["make"])
         os.chdir("..")
+
         return ret
 
 
@@ -112,6 +112,11 @@ if __name__ == "__main__":
         license='Apache License, Version 2.0',
         ext_modules=ext_modules,
         data_files=data_files,
-        cmdclass={"build_ext": build_ext, "build": Build},
-        test_suite="test.test_suite",
+        cmdclass={"build_ext": Build},
+        setup_requires=[
+            'pytest-runner'
+        ],
+        tests_require=[
+            'pytest',
+        ],
     )

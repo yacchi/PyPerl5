@@ -18,7 +18,7 @@ centos7-py2: clean centos7
 	docker run --rm -it pyperl5-build-env python2 setup.py build
 
 centos7-py2-test: clean centos7
-	docker run --rm -it pyperl5-build-env python2 setup.py build test
+	docker run --rm -it pyperl5-build-env python2 setup.py test
 
 centos8:
 	docker build -t pyperl5-build-env-centos8 -f docker/centos8/Dockerfile .
@@ -27,10 +27,12 @@ centos8-py2: clean centos8
 	docker run --rm -it pyperl5-build-env-centos8 python2 setup.py build
 
 centos8-py2-test: clean centos8
-	docker run --rm -it pyperl5-build-env-centos8 python2 setup.py build test
+	docker run --rm -it pyperl5-build-env-centos8 python2 setup.py test
 
 centos8-py3: clean centos8
 	docker run --rm -it pyperl5-build-env-centos8 python3 setup.py build
 
 centos8-py3-test: clean centos8
-	docker run --rm -it pyperl5-build-env-centos8 python3 setup.py build test
+	docker run --rm -it pyperl5-build-env-centos8 python3 setup.py test
+
+all-test: centos7-py2-test centos8-py2-test centos8-py3-test
