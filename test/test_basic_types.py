@@ -2,9 +2,12 @@
 from __future__ import division, print_function, unicode_literals
 
 import unittest
+from sys import maxint
 
 import perl5
 import perl5.vm
+
+minint = -maxint - 1
 
 SCRIPT = r"""
 sub method {
@@ -43,11 +46,11 @@ class TestBasicTypes(unittest.TestCase):
         for n in (0, 1, -1, -2147483647, 2147483646):
             self.assertEqual(self.call(n), n)
 
-        for n in (-0x8000000000000001L, 18446744073709551616L):
+        for n in (minint, maxint):
             self.assertEqual(self.call(n), n)
 
     def test_Float(self):
-        for n in (0.0, 1.0): 
+        for n in (0.0, 1.0):
             self.assertEqual(self.call(n), n)
 
     def test_Boolean(self):
@@ -108,6 +111,7 @@ class TestContainerTypes(unittest.TestCase):
     def test_Dict(self):
         d = self.dict_dataset
         self.assertItemsEqual(self.call(d), d)
+
 
 if __name__ == '__main__':
     unittest.main()
