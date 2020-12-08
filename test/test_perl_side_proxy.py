@@ -32,7 +32,7 @@ sub unit_test {
     $ut->assertTrue(true);
     $ut->assertFalse(false);
     
-    $ut->assertItemsEqual([1, true], [1, true]);
+    $ut->assertEqual([1, true], [1, true]);
 }
 
 sub unit_test2 {

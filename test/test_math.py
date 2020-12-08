@@ -54,6 +54,7 @@ FIB_RESULT = [
     121393,
 ]
 
+
 class TestMathFunc(unittest.TestCase):
     vm = None
 
@@ -73,6 +74,7 @@ class TestMathFunc(unittest.TestCase):
         for n in range(0, 27):
             ret = self.vm.call("m_fib", n)
             self.assertEqual(FIB_RESULT[n], ret)
+
 
 if __name__ == '__main__':
     unittest.main()

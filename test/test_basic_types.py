@@ -2,7 +2,12 @@
 from __future__ import division, print_function, unicode_literals
 
 import unittest
-from sys import maxint
+
+try:
+    from sys import maxint
+except ImportError:
+    from sys import maxsize as maxint
+    long = int
 
 import perl5
 import perl5.vm
@@ -80,7 +85,7 @@ class TestContainerTypes(unittest.TestCase):
         "None": None,
         "Str": "String",
         "Int": 1,
-        "Long": 2147483647L,
+        "Long": long(2147483647),
         "Float": 0.1,
         "Boolean": True,
         "Complex": 1 + 1j
@@ -99,18 +104,20 @@ class TestContainerTypes(unittest.TestCase):
     def test_Tuple(self):
         d = (1,)
         ret = self.call(d)
-        self.assertItemsEqual(d, ret)
+        self.assertEqual(list(d), ret)
 
         d = (1, 2, 3)
         ret = self.call(d)
-        self.assertItemsEqual(d, ret)
+        self.assertEqual(list(d), ret)
 
         d = (self.dict_dataset,)
-        self.assertItemsEqual(self.call(d), d)
+        ret = self.call(d)
+        self.assertEqual(list(d), ret)
 
     def test_Dict(self):
         d = self.dict_dataset
-        self.assertItemsEqual(self.call(d), d)
+        ret = self.call(d)
+        self.assertDictEqual(d, ret)
 
 
 if __name__ == '__main__':

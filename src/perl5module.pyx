@@ -7,13 +7,13 @@ cimport perl5
 from cpython cimport *
 from cpython.version cimport PY_MAJOR_VERSION
 from libcpp.vector cimport vector
-from libc.stdio cimport printf
 
 import os
+from io import IOBase
 from threading import RLock
 
-DEF VERSION = "1.00"
-DEF PERL5SV_CAPSULE_NAME = "PERL5SV"
+DEF VERSION = b"1.00"
+DEF PERL5SV_CAPSULE_NAME = b"PERL5SV"
 
 __version__ = VERSION
 
@@ -22,6 +22,7 @@ if PY_MAJOR_VERSION < 3:
 else:
     basestring = (bytes, str)
     unicode = str
+    long = int
 
 cdef void *libperl
 
@@ -32,6 +33,14 @@ cdef extern from "<Python.h>":
     Py_ssize_t Py_REFCNT(object)
 
 
+cdef char* PyBaseString_AsString(s):
+    if PyBytes_Check(s):
+        return PyBytes_AS_STRING(s)
+    if PyUnicode_Check(s):
+        return PyBytes_AS_STRING(PyUnicode_AsUTF8String(s))
+    raise TypeError("unsupported non basestring type of " + str(type(s)))
+
+
 cdef char** to_cstring_array(list_of_str):
     cdef Py_ssize_t size = len(list_of_str), i
     cdef char ** ret = <char**> PyMem_Malloc(size * sizeof(char*))
@@ -39,8 +48,9 @@ cdef char** to_cstring_array(list_of_str):
         raise MemoryError("can not allocate memory")
 
     for i in range(size):
-        ret[i] = PyString_AsString(list_of_str[i])
+        ret[i] = PyBaseString_AsString(list_of_str[i])
     return ret
+
 
 cdef int __put_stack(Context ctx, object obj, vector[perl5.SV*]& arg_stack) except -1:
     perl5.INIT_SET_MY_PERL(ctx.vm.my_perl)
@@ -76,12 +86,10 @@ cdef inline int __perl_call(Context ctx, object package_or_proxy, object subrout
     perl5.INIT_SET_MY_PERL(ctx.vm.my_perl)
 
     cdef perl5.SV *sv
-    cdef char *c_subroutine_name
+    cdef char *c_subroutine_name = PyBaseString_AsString(subroutine)
     cdef perl5.I32 flag = perl5.G_ARRAY | perl5.G_EVAL
 
     if package_or_proxy is not None:
-        c_subroutine_name = <char*> subroutine
-
         with nogil:
             num_of_args = perl5.call_method(c_subroutine_name, flag)
 
@@ -230,7 +238,7 @@ cdef class Proxy(BaseProxy):
             self.__perl_package__ = perl5.HvNAME(perl5.SvSTASH(sv)).decode("UTF-8")
 
         elif isinstance(capped_sv, basestring):
-            sv = perl5.newSVpvn(capped_sv, len(capped_sv))
+            sv = PyString2SV(ctx, capped_sv)
             self.perl_capped_sv = make_perl_sv_capsule(ctx.vm, sv)
             self.__perl_package__ = capped_sv
 
@@ -410,7 +418,7 @@ cdef class TypeMapper:
         :return: converted object or perl object Proxy
         :rtype: object or Proxy
         """
-        if isinstance(obj, file) and hasattr(obj, "fileno"):
+        if isinstance(obj, IOBase) and hasattr(obj, "fileno") and hasattr(obj, "mode"):
             ret = self.vm.new(self.FILE_PACKAGE)
             fd = os.dup(obj.fileno())
             ret.fdopen(fd, obj.mode)
@@ -447,6 +455,7 @@ cdef class TypeMapper:
 
         # ref is subclass of BaseProxy
         return ref
+
 
 cdef class Loader:
     PACKAGE = "PyPerl5::Loader"
@@ -511,7 +520,7 @@ ctypedef api class VM[object PyPerl5VM, type PyPerl5VMType]:
     _manager = _VMManager()
 
     cdef perl5.PerlInterpreter *my_perl
-    cdef readonly bool closed
+    cdef readonly bint closed
     cdef public Loader loader
     cdef public TypeMapper type_mapper
     cdef readonly object _vm_lock

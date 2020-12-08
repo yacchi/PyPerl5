@@ -1,16 +1,34 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 
+try:
+    import setuptools.monkey
+    setuptools.monkey.patch_all()
+except ImportError:
+    import setuptools
+    import distutils.core
+    import distutils.extension
+
+    distutils.core.Extension = setuptools.Extension
+    distutils.extension.Extension = setuptools.Extension
+
 import os
+import subprocess
 import sys
 from distutils.command.build import build
 from distutils.sysconfig import get_python_inc
 from shlex import split
-from subprocess import check_output, call
+from subprocess import call
 from sys import platform
 
 from Cython.Distutils import build_ext
-from setuptools import setup, Extension
+from Cython.Distutils.extension import Extension
+from setuptools import setup
+
+
+def check_output(*popenargs, **kwargs):
+    return subprocess.check_output(*popenargs, **kwargs).decode("utf-8")
+
 
 os.environ["PYTHON_INC_DIR"] = get_python_inc()
 
@@ -53,6 +71,7 @@ ext_modules = [
         language="c++",
         extra_compile_args=perl_compile_args,
         extra_link_args=perl_link_args,
+        cython_directives={"language_level": sys.version_info.major}
     )
 ]
 

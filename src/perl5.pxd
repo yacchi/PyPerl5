@@ -15,6 +15,9 @@ cdef extern from "<perl.h>":
     ctypedef struct HV:
         pass
 
+    ctypedef struct HE:
+        pass
+
     ctypedef struct CV:
         pass
 
@@ -126,11 +129,18 @@ cdef extern from "<perl.h>":
     HV* newHV() nogil
     SV** hv_store(HV*, char*, I32, SV*, int) nogil
     void hv_undef(HV*) nogil
-    void hv_iterinit(HV*) nogil
+    I32 hv_iterinit(HV*) nogil
     SV* hv_iternextsv(HV*, char**, I32*) nogil
     char* HvNAME(HV*) nogil
     char* HvNAME_get(HV*) nogil
     HV* get_hv(char*, I32) nogil
+
+    # SV* based control
+    HE* hv_store_ent(HV*, SV*, SV*, int) nogil
+    HE* hv_iternext(HV*) nogil
+    SV* hv_iterkeysv(HE*) nogil
+    SV* HeSVKEY(HE*) nogil
+    SV* HeVAL(HE*) nogil
 
     # RV control
     RV* newRV(SV*) nogil
