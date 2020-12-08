@@ -45,7 +45,9 @@ cdef char** to_cstring_array(list_of_str):
 cdef int __put_stack(Context ctx, object obj, vector[perl5.SV*]& arg_stack) except -1:
     perl5.INIT_SET_MY_PERL(ctx.vm.my_perl)
 
-    cdef perl5.SV *sv_key, *sv_value
+    cdef:
+        perl5.SV *sv_key
+        perl5.SV *sv_value
 
     if isinstance(obj, BaseProxy):
         sv_value = get_sv_from_capsule(obj.perl_capped_sv)
@@ -75,9 +77,7 @@ cdef inline int __perl_call(Context ctx, object package_or_proxy, object subrout
 
     cdef perl5.SV *sv
     cdef char *c_subroutine_name
-    cdef perl5.I32 flag = 0
-
-    flag = perl5.G_ARRAY | perl5.G_EVAL
+    cdef perl5.I32 flag = perl5.G_ARRAY | perl5.G_EVAL
 
     if package_or_proxy is not None:
         c_subroutine_name = <char*> subroutine
@@ -195,7 +195,9 @@ cdef class BaseProxy:
             self.__perl_package__, id(self))
 
     def __richcmp__(self, other, operation):
-        cdef perl5.SV *sv_a, *sv_b
+        cdef:
+            perl5.SV *sv_a
+            perl5.SV *sv_b
 
         if operation == 2 or operation == 3:  # ==
             if isinstance(other, BaseProxy):
@@ -218,7 +220,9 @@ cdef class Proxy(BaseProxy):
 
     def __cinit__(self, Context ctx, object capped_sv, *args, **kwargs):
         perl5.INIT_SET_MY_PERL(ctx.vm.my_perl)
-        cdef perl5.SV *rv, *sv
+        cdef:
+            perl5.SV *rv
+            perl5.SV *sv
 
         if PyCapsule_CheckExact(capped_sv):
             rv = get_sv_from_capsule(capped_sv)
@@ -233,7 +237,9 @@ cdef class Proxy(BaseProxy):
         self.__perl_members__ = {}
 
     def __perl_data__(self):
-        cdef perl5.SV *rv, *sv
+        cdef:
+            perl5.SV *rv
+            perl5.SV *sv
 
         rv = get_sv_from_capsule(self.perl_capped_sv)
         sv = perl5.SvRV(rv)
@@ -487,7 +493,8 @@ cdef class _VMManager:
     def __cinit__(self):
         cdef:
             int argc = 0
-            char ** argv, ** env
+            char ** argv
+            char ** env
 
         perl5.PERL_SYS_INIT3(&argc, &argv, &env)
 
@@ -648,20 +655,17 @@ ctypedef api class VM[object PyPerl5VM, type PyPerl5VMType]:
 
         with self._vm_lock:
             ret = None
-            perl5.dSP;
-            perl5.ENTER;
-            perl5.SAVETMPS;
-            perl5.PUSHMARK(perl5.SP)
+            perl5.PERL5_SETUP_CALL_SUB()
 
             if num_of_args:
                 perl5.EXTEND(perl5.SP, num_of_args)
                 for sv in arg_stack:
                     perl5.PUSHs(sv)
-                perl5.PUTBACK;
+                perl5.PERL5_PUTBACK()
 
             num_of_args = __perl_call(ctx, package_or_proxy, subroutine)
 
-            perl5.SPAGAIN;
+            perl5.PERL5_SPAGAIN()
 
             try:
                 if num_of_args == 1:
@@ -684,9 +688,7 @@ ctypedef api class VM[object PyPerl5VM, type PyPerl5VMType]:
                         Py_INCREF(obj)
                         PyTuple_SET_ITEM(ret, num_of_args - i - 1, obj)
             finally:
-                perl5.PUTBACK;
-                perl5.FREETMPS;
-                perl5.LEAVE;
+                perl5.PERL5_CLEANUP_CALL_SUB()
 
             __perl_error_check(ctx)
 
@@ -705,14 +707,11 @@ ctypedef api class VM[object PyPerl5VM, type PyPerl5VMType]:
 
         with self._vm_lock:
             ret = None
-            perl5.dSP;
-            perl5.ENTER;
-            perl5.SAVETMPS;
-            perl5.PUSHMARK(perl5.SP)
+            perl5.PERL5_SETUP_CALL_SUB()
 
             num_of_ret = perl5.eval_sv(sv, perl5.G_ARRAY | perl5.G_EVAL)
 
-            perl5.SPAGAIN;
+            perl5.PERL5_SPAGAIN()
 
             try:
                 if num_of_ret == 1:
@@ -727,9 +726,7 @@ ctypedef api class VM[object PyPerl5VM, type PyPerl5VMType]:
                         ret[num_of_ret - i - 1] = obj
                     ret = tuple(ret)
             finally:
-                perl5.PUTBACK;
-                perl5.FREETMPS;
-                perl5.LEAVE;
+                perl5.PERL5_CLEANUP_CALL_SUB()
 
             __perl_error_check(ctx)
 

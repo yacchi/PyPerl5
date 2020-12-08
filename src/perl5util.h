@@ -42,6 +42,10 @@
 #define INIT_MY_PERL(p) PerlInterpreter *my_perl;
 #define INIT_SET_MY_PERL(p) PerlInterpreter *my_perl = p; PERL_SET_CONTEXT(my_perl);
 #define SET_MY_PERL(p) my_perl = p; PERL_SET_CONTEXT(my_perl);
+#define PERL5_SETUP_CALL_SUB() dSP; ENTER; SAVETMPS; PUSHMARK(SP);
+#define PERL5_CLEANUP_CALL_SUB() PUTBACK; FREETMPS; LEAVE;
+#define PERL5_PUTBACK() PUTBACK;
+#define PERL5_SPAGAIN() SPAGAIN;
 
 #ifdef __cplusplus
 extern "C" {

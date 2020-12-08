@@ -57,9 +57,12 @@ cdef perl5.SV* PyComplex2PerlSV(Context ctx, object obj) except NULL:
 cdef perl5.SV* PyList2PerlRV(Context ctx, object obj) except NULL:
     perl5.INIT_SET_MY_PERL(ctx.vm.my_perl)
 
-    cdef perl5.AV *av = <perl5.AV*>perl5.sv_2mortal(<perl5.SV*>perl5.newAV())
-    cdef perl5.SV *sv, **res
-    cdef Py_ssize_t i, size = len(obj)
+    cdef:
+        perl5.AV *av = <perl5.AV*>perl5.sv_2mortal(<perl5.SV*>perl5.newAV())
+        perl5.SV *sv
+        perl5.SV **res
+        Py_ssize_t i
+        Py_ssize_t size = len(obj)
 
     if size:
         perl5.av_extend(av, size)
@@ -79,8 +82,10 @@ cdef perl5.SV* PyList2PerlRV(Context ctx, object obj) except NULL:
 cdef perl5.SV* PyDict2PerlRV(Context ctx, object obj) except NULL:
     perl5.INIT_SET_MY_PERL(ctx.vm.my_perl)
 
-    cdef perl5.HV *hv = <perl5.HV*>perl5.sv_2mortal(<perl5.SV*>perl5.newHV())
-    cdef perl5.SV *sv_value, **res
+    cdef:
+        perl5.HV *hv = <perl5.HV*>perl5.sv_2mortal(<perl5.SV*>perl5.newHV())
+        perl5.SV *sv_value
+        perl5.SV **res
 
     for k, v in obj.items():
         sv_value = PyObject2PerlSV(ctx, v)

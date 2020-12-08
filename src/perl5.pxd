@@ -241,7 +241,10 @@ cdef extern from "perl5util.h":
     object PERL5_MODULE_PyLongFromSVuv(SV*) nogil
 
     void perl5_module_xs_init(pTHX) nogil
+    void PERL5_SETUP_CALL_SUB() nogil
+    void PERL5_CLEANUP_CALL_SUB() nogil
+    void PERL5_SPAGAIN() nogil
+    void PERL5_PUTBACK() nogil
 
 # cdef extern from *:
 #     pass
-
