@@ -1,13 +1,18 @@
+# -*- coding: utf-8 -*-
 from __future__ import print_function
-from setuptools import setup, Extension, find_packages
-from subprocess import check_output, call
-from distutils.command.build import build
-from shlex import split
-import os
-from Cython.Distutils import build_ext
-import sys
 
+import os
+import sys
+from distutils.command.build import build
+from distutils.sysconfig import get_python_inc
+from shlex import split
+from subprocess import check_output, call
 from sys import platform
+
+from Cython.Distutils import build_ext
+from setuptools import setup, Extension
+
+os.environ["PYTHON_INC_DIR"] = get_python_inc()
 
 if platform == "linux" or platform == "linux2":
     perl_lib_name = "Proxy.so"
@@ -47,7 +52,8 @@ ext_modules = [
         depends=["src/type_convert.pyx", "src/perl5.pxd", "src/dlfcn.pxd"],
         language="c++",
         extra_compile_args=perl_compile_args,
-        extra_link_args=perl_link_args)
+        extra_link_args=perl_link_args,
+    )
 ]
 
 data_files = [
@@ -73,7 +79,6 @@ class Build(build):
 
 with open("README.rst") as f:
     readme = f.read()
-
 
 if __name__ == "__main__":
     setup(
