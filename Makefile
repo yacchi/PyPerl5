@@ -2,6 +2,8 @@ clean:
 	rm -r build || true
 	rm src/perl5module.cpp src/perl5module.h src/perl5module_api.h src/ppport.h 2>/dev/null || true
 	cd perl && make clean || true
+	rm perl5/_lib/*.so || true
+	rm -r perl5/vendor_perl/{auto,PyPerl5,.exists} || true
 
 test-py2: clean
 	python -B setup.py build

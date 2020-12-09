@@ -1,7 +1,10 @@
 # graft src/*.h 
 
 # include test/__init__.py
-recursive-include src *.pyx *.c *.cpp *.h *.pxd
-recursive-include perl *.pm *.pod *.pl *.xs *.PL MANIFEST
+recursive-include src *.pyx *.c *.h *.pxd
+recursive-include perl *.pm *.xs *.PL MANIFEST
+recursive-include perl5 *.pm *.bundle *.so *.bs *.dll *.pyx *.pxd *.h *.c
 
 include README* LICENSE
+
+prune perl/blib

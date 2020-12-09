@@ -546,7 +546,7 @@ ctypedef api class VM[object PyPerl5VM, type PyPerl5VMType]:
         self.closed = False
         self._manager.up()
 
-    def __init__(self, type loader_class=Loader, type type_mapper_class=TypeMapper, lib_path=None):
+    def __init__(self, type loader_class=Loader, type type_mapper_class=TypeMapper, include_directory=None):
         perl5.INIT_SET_MY_PERL(self.my_perl)
         cdef int exit_status
         cdef char ** c_boot_args
@@ -556,12 +556,17 @@ ctypedef api class VM[object PyPerl5VM, type PyPerl5VMType]:
         self._vm_lock = RLock()
 
         self.loader = loader_class(self)
-
         vm = self.my_perl
 
-        boot_args = ["", "-M" + self.loader.package, "-e", "0"]
-        c_boot_args = to_cstring_array(boot_args)
+        boot_args = ["", "-M"+self.loader.package]
+        if include_directory:
+            if isinstance(include_directory, basestring):
+                boot_args.append("-I"+include_directory)
+            else:
+                boot_args.extend(["-I"+p for p in include_directory])
+        boot_args.extend(["-e", "0"])
 
+        c_boot_args = to_cstring_array(boot_args)
         exit_status = perl5.perl_parse(vm, perl5.perl5_module_xs_init, len(boot_args), c_boot_args, NULL)
 
         PyMem_Free(c_boot_args)
@@ -583,7 +588,8 @@ ctypedef api class VM[object PyPerl5VM, type PyPerl5VMType]:
                 self.type_mapper = type_mapper
 
         else:
-            raise RuntimeError("perl_parse error. exit_status = " + str(exit_status))
+            raise RuntimeError(
+                "perl_parse error. exit_status = ({}). boot_args = '{}'".format(exit_status, " ".join(boot_args)))
 
     def __dealloc__(self):
         if not self.closed and hasattr(self, "close"):

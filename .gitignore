@@ -320,3 +320,9 @@ fabric.properties
 *.iml
 .idea
 .envrc
+*.lock
+
+perl5/vendor_perl/*
+!perl5/vendor_perl/__init__.py
+perl5/_lib/*
+!perl5/_lib/__init__.py

@@ -3,6 +3,7 @@ from __future__ import print_function
 
 try:
     import setuptools.monkey
+
     setuptools.monkey.patch_all()
 except ImportError:
     import setuptools
@@ -15,7 +16,9 @@ except ImportError:
 import os
 import subprocess
 import sys
+
 from distutils.sysconfig import get_python_inc
+from distutils.dir_util import copy_tree
 from shlex import split
 from subprocess import call
 from sys import platform
@@ -29,20 +32,14 @@ def check_output(*popenargs, **kwargs):
     return subprocess.check_output(*popenargs, **kwargs).decode("utf-8")
 
 
-os.environ["PYTHON_INC_DIR"] = get_python_inc()
-
 if platform == "linux" or platform == "linux2":
-    perl_lib_name = "Proxy.so"
+    perl_lib_names = ["Proxy.so"]
 elif platform == "darwin":
-    perl_lib_name = "Proxy.bundle"
+    perl_lib_names = ["Proxy.bundle", "Proxy.bs"]
 elif platform == "win32":
-    perl_lib_name = "Proxy.dll"
+    perl_lib_names = ["Proxy.dll"]
 else:
-    perl_lib_name = "Proxy.so"
-
-sys.path.insert(0, "lib")
-# sys.path.insert(0, "build/lib.linux-x86_64-2.7")
-# sys.path.insert(0, "build/lib.macosx-10.12-x86_64-2.7")
+    perl_lib_names = ["Proxy.so"]
 
 version = "1.0"
 
@@ -50,21 +47,16 @@ PERL_PACKAGE = "PyPerl5"
 PERL_LIB_DIR = os.path.join("perl", "lib")
 PERL_PACKAGE_DIR = os.path.join(PERL_LIB_DIR, PERL_PACKAGE)
 
-os.environ["PERL5LIB"] = ":".join(
-    [os.path.join(os.path.abspath(os.curdir), p) for p in (PERL_LIB_DIR, 'perl/blib/arch')])
-
 ###
 perl_compile_args = split(check_output("perl -MExtUtils::Embed -e ccopts".split(" ")).strip())
 perl_link_args = split(check_output("perl -MExtUtils::Embed -e ldopts".split(" ")).strip())
-perl_lib_dir = check_output(["perl", "-MConfig", "-E", 'say $Config{vendorlib}']).strip()
-perl_xs_lib_dir = check_output(["perl", "-MConfig", "-E", 'say $Config{vendorarchexp}']).strip()
 
 perl_compile_args += ("-Wall",)
 perl_link_args += ()
 
 ext_modules = [
     Extension(
-        "_perl5",
+        "perl5._lib._perl",
         sources=["src/perl5module.pyx", "src/perl5util.c"],
         depends=["src/type_convert.pyx", "src/perl5.pxd", "src/dlfcn.pxd"],
         language="c++",
@@ -74,24 +66,28 @@ ext_modules = [
     )
 ]
 
-data_files = [
-    (os.path.join(perl_lib_dir, PERL_PACKAGE),
-     (os.path.join(PERL_PACKAGE_DIR, p) for p in os.listdir(PERL_PACKAGE_DIR))),
-    (os.path.join(perl_xs_lib_dir, 'auto/PyPerl5/Proxy'),
-     (os.path.join("perl/blib/arch/auto/PyPerl5/Proxy/", perl_lib_name),)),
-]
-
 
 class Build(build_ext, object):
     def run(self):
+        os.environ["PYTHON_INC_DIR"] = get_python_inc()
         call(["perl", "-MDevel::PPPort", "-e", "Devel::PPPort::WriteFile('src/ppport.h')"])
-        ret = super(Build, self).run()
 
+        # cythonize
+        ret = super(Build, self).run()
         os.chdir("perl")
-        if not os.path.exists("Makefile"):
-            call(["perl", "Makefile.PL"])
+        # if not os.path.exists("Makefile"):
+        call(["perl", "Makefile.PL"])
         call(["make"])
         os.chdir("..")
+
+        # copy perl libs into package dir
+        targets = [
+            (os.path.join("perl", "lib"), os.path.join(self.build_lib, "perl5", "vendor_perl")),
+            (os.path.join("perl", "blib", "arch"), os.path.join(self.build_lib, "perl5", "vendor_perl")),
+        ]
+
+        for src, dst in targets:
+            copy_tree(src, dst)
 
         return ret
 
