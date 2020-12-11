@@ -97,22 +97,7 @@ with open("README.rst") as f:
 
 if __name__ == "__main__":
     setup(
-        name="PyPerl5",
-        author="Yasunori Fujie",
-        author_email="fuji@dmgw.net",
         version=version,
-        packages=["perl5"],
-        description="Perl 5 integration for python",
-        long_description=readme,
-        url='https://github.com/yacchi21/PyPerl5',
-        license='Apache License, Version 2.0',
         ext_modules=ext_modules,
-        data_files=data_files,
         cmdclass={"build_ext": Build},
-        setup_requires=[
-            'pytest-runner'
-        ],
-        tests_require=[
-            'pytest',
-        ],
     )
