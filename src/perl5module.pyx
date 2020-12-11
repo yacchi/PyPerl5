@@ -564,7 +564,9 @@ ctypedef api class VM[object PyPerl5VM, type PyPerl5VMType]:
                 boot_args.append("-I"+include_directory)
             else:
                 boot_args.extend(["-I"+p for p in include_directory])
-        boot_args.extend(["-e", "0"])
+
+        # perlembed docs use "0". but parse error.
+        boot_args.extend(["-e", ""])
 
         c_boot_args = to_cstring_array(boot_args)
         exit_status = perl5.perl_parse(vm, perl5.perl5_module_xs_init, len(boot_args), c_boot_args, NULL)
