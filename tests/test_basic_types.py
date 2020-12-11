@@ -10,7 +10,6 @@ except ImportError:
     long = int
 
 import perl5
-import perl5.vm
 
 minint = -maxint - 1
 

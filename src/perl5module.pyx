@@ -1,9 +1,14 @@
+# -*- coding: utf-8 -*-
+from __future__ import absolute_import
+
 cdef extern from "config.h":
     pass
 
-
 cimport dlfcn
+# unsupported relative cimport in old cython on centos7
+# noinspection PyUnresolvedReferences,PyProtectedMember
 cimport perl5
+
 from cpython cimport *
 from cpython.version cimport PY_MAJOR_VERSION
 from libcpp.vector cimport vector
@@ -18,6 +23,7 @@ DEF PERL5SV_CAPSULE_NAME = b"PERL5SV"
 __version__ = VERSION
 
 if PY_MAJOR_VERSION < 3:
+    # noinspection PyUnresolvedReferences
     basestring = __builtins__.basestring
 else:
     basestring = (bytes, str)

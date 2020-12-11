@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+
+# noinspection PyUnresolvedReferences,PyProtectedMember
 cimport perl5
 from cpython cimport *
 

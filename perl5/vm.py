@@ -3,6 +3,7 @@ from __future__ import absolute_import
 
 import datetime
 
+# noinspection PyUnresolvedReferences,PyProtectedMember
 from ._lib import _perl as perl5
 from .vendor_perl import PERL_PACKAGE
 
