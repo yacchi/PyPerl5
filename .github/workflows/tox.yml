@@ -1,0 +1,44 @@
+name: tox
+
+on: [push]
+
+jobs:
+  tox:
+    name: Run tests with tox
+    strategy:
+      matrix:
+        os:
+          - macos-latest
+          - ubuntu-latest
+        python-version: [2.7, 3.6, 3.7, 3.8]
+    runs-on: ${{ matrix.os }}
+    steps:
+      # https://docs.github.com/ja/free-pro-team@latest/actions/guides/building-and-testing-python#tox%E3%81%A7%E3%81%AE%E3%83%86%E3%82%B9%E3%83%88%E3%81%AE%E5%AE%9F%E8%A1%8C
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }} on ${{ matrix.os }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install package use homebrew
+        run: HOMEBREW_NO_AUTO_UPDATE=1 brew install perl-build
+      - name: Install Tox and any other packages
+        run: pip install tox Cython
+      - name: Run tox
+        run: tox -e py
+  tox-on-docker:
+    name: Run tests with tox on docker
+    strategy:
+      matrix:
+        os:
+          - centos7
+          - centos8
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run test on docker
+        id: build-image
+        env:
+          DOCKER_BUILDKIT: 1
+          OS: ${{ matrix.os }}
+        run: |
+          make ${OS}-test
