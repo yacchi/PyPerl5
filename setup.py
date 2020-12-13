@@ -67,7 +67,15 @@ ext_modules = [
 ]
 
 
+def all_files(directory):
+    for root, dirs, files in os.walk(directory):
+        for file in files:
+            yield os.path.join(root, file)
+
+
 class Build(build_ext, object):
+    perl_installed_files = []
+
     def run(self):
         os.environ["PYTHON_INC_DIR"] = get_python_inc()
         call(["perl", "-MDevel::PPPort", "-e", "Devel::PPPort::WriteFile('src/ppport.h')"])
@@ -86,10 +94,18 @@ class Build(build_ext, object):
             (os.path.join("perl", "blib", "arch"), os.path.join(self.build_lib, "perl5", "vendor_perl")),
         ]
 
+        self.perl_installed_files = []
+
         for src, dst in targets:
             copy_tree(src, dst)
+            self.perl_installed_files.extend(all_files(dst))
 
         return ret
+
+    def get_outputs(self):
+        outputs = super(Build, self).get_outputs()  # type: list[str]
+        outputs.extend(self.perl_installed_files)
+        return outputs
 
 
 with open("README.rst") as f:
