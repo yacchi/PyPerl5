@@ -5,7 +5,6 @@ RUN mkdir -p /pyperl5
 
 WORKDIR /pyperl5
 
-RUN yum install -y vim-enhanced
 RUN yum install -y epel-release
 RUN yum install -y python2-pip Cython python2-devel perl-devel perl-ExtUtils-Embed
 RUN yum install -y python3-pip python3-devel
