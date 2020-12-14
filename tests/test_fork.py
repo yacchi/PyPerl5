@@ -51,5 +51,6 @@ class TestCase(unittest.TestCase):
 
         self.assertIsInstance(cm.exception, OSError)
 
+
 if __name__ == '__main__':
     unittest.main()
