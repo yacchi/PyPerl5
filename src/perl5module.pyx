@@ -380,51 +380,12 @@ cdef class TypeMapper:
             return proxy_cls(ctx, capped_sv)
 
     def map_long_integer(self, ctx, obj):
-        """
-        Forward type mapping method.
-
-        Python      Perl
-        long   => Math::BigInt
-
-        :param ctx: Context object
-        :type ctx: Context
-        :param obj: source object
-        :type obj: object
-        :return: converted object or Proxy
-        :rtype: object or Proxy
-        """
         return self.vm.new(self.BIGINT_PACKAGE, (str(obj),))
 
     def map_complex(self, ctx, obj):
-        """
-        Forward type mapping method.
-
-        Python       Perl
-        complex => Math::Complex
-
-        :param ctx: Context object
-        :type ctx: Context
-        :param obj: source object
-        :type obj: object
-        :return: converted object or Proxy
-        :rtype: object or Proxy
-        """
         return self.vm.new(self.COMPLEX_PACKAGE, (obj.real, obj.imag))
 
     def map_from_python(self, ctx, obj):
-        """
-        Custom forward type mapping method.
-
-        Python    Perl
-        any    => any
-
-        :param ctx: Context object
-        :type ctx: Context
-        :param obj: source object
-        :type obj: object
-        :return: converted object or perl object Proxy
-        :rtype: object or Proxy
-        """
         if isinstance(obj, IOBase) and hasattr(obj, "fileno") and hasattr(obj, "mode"):
             ret = self.vm.new(self.FILE_PACKAGE)
             fd = os.dup(obj.fileno())
@@ -436,19 +397,6 @@ cdef class TypeMapper:
         # raise TypeError(str(type(obj)) + " is not supported type")
 
     def map_to_python(self, ctx, ref):
-        """
-        Custom reverse type mapping method.
-
-        Perl    Python  
-        any  => any    
-
-        :param ctx: Context object
-        :type ctx: Context
-        :param ref: perl object Proxy
-        :type ref: Proxy
-        :return: converted object or Proxy
-        :rtype: object or Proxy
-        """
         if ref.isa(self.BIGINT_PACKAGE):
             return long(ref.bstr())
 

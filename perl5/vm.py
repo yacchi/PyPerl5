@@ -19,8 +19,7 @@ class Proxy(perl5.Proxy):
 
 
 class CodeRefProxy(perl5.CodeRefProxy):
-    def __call__(self, *args, **kwargs):
-        return super(CodeRefProxy, self).__call__(*args, **kwargs)
+    pass
 
 
 class TypeMapper(perl5.TypeMapper):
@@ -107,23 +106,3 @@ class VM(perl5.VM):
         else:
             ret = self._call(None, subroutine, None)
         return ret
-
-        # defined in perl5module.pyx
-
-        # def call_method(self, package_or_proxy, subroutine_name, arguments=None):
-        #     ...
-
-        # def eval(self, script):
-        #     ...
-
-        # def new(self, package_or_proxy, arguments=None, method="new"):
-        #     ...
-
-        # def package(self, package):
-        #     ...
-
-        # def require(self, script_name):
-        #     ...
-
-        # def use(self, module_name, args=None, version=None):
-        #     ...
