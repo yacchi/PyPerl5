@@ -135,6 +135,7 @@ cdef api perl5.SV* PyObject2PerlSV(Context ctx, object obj) except NULL:
 
     elif isinstance(obj, BaseProxy):
         sv = get_sv_from_capsule(obj.perl_capped_sv)
+        perl5.SvREFCNT_inc(sv)
 
     elif isinstance(obj, ObjectPTR):
         Py_INCREF(obj)

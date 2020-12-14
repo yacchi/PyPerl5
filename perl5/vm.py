@@ -19,7 +19,8 @@ class Proxy(perl5.Proxy):
 
 
 class CodeRefProxy(perl5.CodeRefProxy):
-    pass
+    def __call__(self, *args, **kwargs):
+        return super(CodeRefProxy, self).__call__(*args, **kwargs)
 
 
 class TypeMapper(perl5.TypeMapper):

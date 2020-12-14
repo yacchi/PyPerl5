@@ -44,7 +44,7 @@ cdef char* PyBaseString_AsString(s):
         return PyBytes_AS_STRING(s)
     if PyUnicode_Check(s):
         return PyBytes_AS_STRING(PyUnicode_AsUTF8String(s))
-    raise TypeError("unsupported non basestring type of " + str(type(s)))
+    raise TypeError("unsupported non basestring type of " + str(s) + " " + str(type(s)))
 
 
 cdef char** to_cstring_array(list_of_str):
@@ -92,10 +92,11 @@ cdef inline int __perl_call(Context ctx, object package_or_proxy, object subrout
     perl5.INIT_SET_MY_PERL(ctx.vm.my_perl)
 
     cdef perl5.SV *sv
-    cdef char *c_subroutine_name = PyBaseString_AsString(subroutine)
+    cdef char *c_subroutine_name
     cdef perl5.I32 flag = perl5.G_ARRAY | perl5.G_EVAL
 
     if package_or_proxy is not None:
+        c_subroutine_name = PyBaseString_AsString(subroutine)
         with nogil:
             num_of_args = perl5.call_method(c_subroutine_name, flag)
 

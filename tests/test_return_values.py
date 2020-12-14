@@ -48,5 +48,13 @@ class TestReturnValues(unittest.TestCase):
         self.assertEqual(ret, d)
         self.assertIsInstance(ret, tuple)
 
+    def test_code_ref_return(self):
+        sub_ref = self.vm.eval("sub {@_}")
+
+        self.assertIsInstance(sub_ref, perl5.vm.CodeRefProxy)
+        self.assertEqual(sub_ref(1), 1)
+        self.assertEqual(sub_ref("str"), "str")
+
+
 if __name__ == '__main__':
     unittest.main()
