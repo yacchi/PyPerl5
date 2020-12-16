@@ -45,7 +45,8 @@ MODULE = PyPerl5::Proxy		PACKAGE = PyPerl5::Proxy
 
 BOOT:
     XS_BEGIN_GIL;
-    import__perl5();
+    // load perl5module_api
+    import_perl5___lib___perl();
     XS_END_GIL;
 
 void

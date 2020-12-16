@@ -17,7 +17,7 @@ WriteMakefile(
     # },
     # DEFINE            => '-b -o $@', # e.g., '-DHAVE_SOMETHING'
     DEFINE            => '-o $@', # e.g., '-DHAVE_SOMETHING'
-    INC               => '-I. -I../src -I/usr/include/python2.7', # e.g., '-I. -I/usr/include/other'
+    INC               => "-I. -I../src -I$ENV{PYTHON_INC_DIR}", # e.g., '-I. -I/usr/include/other'
 	# Un-comment this if you add C files to link with later:
     # OBJECT            => '$(O_FILES)', # link all the C files too
     OBJECT            => '$(O_FILES)', # link all the C files too

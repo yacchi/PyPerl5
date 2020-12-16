@@ -3,8 +3,15 @@ from __future__ import division, print_function, unicode_literals
 
 import unittest
 
+try:
+    from sys import maxint
+except ImportError:
+    from sys import maxsize as maxint
+    long = int
+
 import perl5
-import perl5.vm
+
+minint = -maxint - 1
 
 SCRIPT = r"""
 sub method {
@@ -43,11 +50,11 @@ class TestBasicTypes(unittest.TestCase):
         for n in (0, 1, -1, -2147483647, 2147483646):
             self.assertEqual(self.call(n), n)
 
-        for n in (-0x8000000000000001L, 18446744073709551616L):
+        for n in (minint, maxint):
             self.assertEqual(self.call(n), n)
 
     def test_Float(self):
-        for n in (0.0, 1.0): 
+        for n in (0.0, 1.0):
             self.assertEqual(self.call(n), n)
 
     def test_Boolean(self):
@@ -77,7 +84,7 @@ class TestContainerTypes(unittest.TestCase):
         "None": None,
         "Str": "String",
         "Int": 1,
-        "Long": 2147483647L,
+        "Long": long(2147483647),
         "Float": 0.1,
         "Boolean": True,
         "Complex": 1 + 1j
@@ -96,18 +103,21 @@ class TestContainerTypes(unittest.TestCase):
     def test_Tuple(self):
         d = (1,)
         ret = self.call(d)
-        self.assertItemsEqual(d, ret)
+        self.assertEqual(list(d), ret)
 
         d = (1, 2, 3)
         ret = self.call(d)
-        self.assertItemsEqual(d, ret)
+        self.assertEqual(list(d), ret)
 
         d = (self.dict_dataset,)
-        self.assertItemsEqual(self.call(d), d)
+        ret = self.call(d)
+        self.assertEqual(list(d), ret)
 
     def test_Dict(self):
         d = self.dict_dataset
-        self.assertItemsEqual(self.call(d), d)
+        ret = self.call(d)
+        self.assertDictEqual(d, ret)
+
 
 if __name__ == '__main__':
     unittest.main()

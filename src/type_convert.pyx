@@ -1,5 +1,9 @@
+# -*- coding: utf-8 -*-
+
+# noinspection PyUnresolvedReferences,PyProtectedMember
 cimport perl5
-from libc.stdio cimport printf
+from cpython cimport *
+
 
 cdef inline perl5.SV* PyNone2PerlSV(Context ctx):
     perl5.INIT_SET_MY_PERL(ctx.vm.my_perl)
@@ -57,9 +61,12 @@ cdef perl5.SV* PyComplex2PerlSV(Context ctx, object obj) except NULL:
 cdef perl5.SV* PyList2PerlRV(Context ctx, object obj) except NULL:
     perl5.INIT_SET_MY_PERL(ctx.vm.my_perl)
 
-    cdef perl5.AV *av = <perl5.AV*>perl5.sv_2mortal(<perl5.SV*>perl5.newAV())
-    cdef perl5.SV *sv, **res
-    cdef Py_ssize_t i, size = len(obj)
+    cdef:
+        perl5.AV *av = <perl5.AV*>perl5.sv_2mortal(<perl5.SV*>perl5.newAV())
+        perl5.SV *sv
+        perl5.SV **res
+        Py_ssize_t i
+        Py_ssize_t size = len(obj)
 
     if size:
         perl5.av_extend(av, size)
@@ -79,8 +86,9 @@ cdef perl5.SV* PyList2PerlRV(Context ctx, object obj) except NULL:
 cdef perl5.SV* PyDict2PerlRV(Context ctx, object obj) except NULL:
     perl5.INIT_SET_MY_PERL(ctx.vm.my_perl)
 
-    cdef perl5.HV *hv = <perl5.HV*>perl5.sv_2mortal(<perl5.SV*>perl5.newHV())
-    cdef perl5.SV *sv_value, **res
+    cdef:
+        perl5.HV *hv = <perl5.HV*>perl5.sv_2mortal(<perl5.SV*>perl5.newHV())
+        perl5.SV *sv_value
 
     for k, v in obj.items():
         sv_value = PyObject2PerlSV(ctx, v)
@@ -91,11 +99,7 @@ cdef perl5.SV* PyDict2PerlRV(Context ctx, object obj) except NULL:
         if not isinstance(k, basestring):
             k = str(k)
 
-        res = perl5.hv_store(hv, k, len(k), sv_value, 0)
-
-        if res == NULL:
-            perl5.hv_undef(hv)
-            raise PerlRuntimeError("can't store hash")
+        perl5.hv_store_ent(hv, PyString2SV(ctx, k), sv_value, 0)
 
     return <perl5.SV*>perl5.newRV(<perl5.SV*>hv)
 
@@ -111,7 +115,7 @@ cdef api perl5.SV* PyObject2PerlSV(Context ctx, object obj) except NULL:
     elif isinstance(obj, basestring):
         sv = PyString2SV(ctx, obj)
 
-    elif isinstance(obj, bool):
+    elif PyBool_Check(obj):
         pass
 
     elif isinstance(obj, (int, long)):
@@ -203,22 +207,18 @@ cdef PerlHV2PyObject(Context ctx, perl5.SV *sv):
     perl5.INIT_SET_MY_PERL(ctx.vm.my_perl)
 
     cdef perl5.HV *hv = <perl5.HV*>sv
-    cdef char *key
-    cdef perl5.I32 key_len
-    cdef perl5.SV *sv_item
-    cdef object item
-    
+    cdef perl5.HE *entry
+    cdef object val
+
     ret = {}
 
-    perl5.hv_iterinit(hv)
+    cdef perl5.I32 n = perl5.hv_iterinit(hv)
 
-    while True:
-        sv_item = perl5.hv_iternextsv(hv, &key, &key_len)
-        if sv_item == NULL:
-            break
-        item = PerlSV2PyObject(ctx, sv_item)
-        ret[<char*>key] = item
-        
+    for i in range(n):
+        entry = perl5.hv_iternext(hv)
+        val = PerlSV2PyObject(ctx, perl5.HeVAL(entry))
+        ret[PerlSVScalar2PyObject(ctx, perl5.hv_iterkeysv(entry))] = val
+
     return ret
 
 

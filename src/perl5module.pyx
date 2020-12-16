@@ -1,27 +1,34 @@
+# -*- coding: utf-8 -*-
+from __future__ import absolute_import
+
 cdef extern from "config.h":
     pass
 
-
 cimport dlfcn
+# unsupported relative cimport in old cython on centos7
+# noinspection PyUnresolvedReferences,PyProtectedMember
 cimport perl5
+
 from cpython cimport *
 from cpython.version cimport PY_MAJOR_VERSION
 from libcpp.vector cimport vector
-from libc.stdio cimport printf
 
 import os
+from io import IOBase
 from threading import RLock
 
-DEF VERSION = "1.00"
-DEF PERL5SV_CAPSULE_NAME = "PERL5SV"
+DEF VERSION = b"1.00"
+DEF PERL5SV_CAPSULE_NAME = b"PERL5SV"
 
 __version__ = VERSION
 
 if PY_MAJOR_VERSION < 3:
+    # noinspection PyUnresolvedReferences
     basestring = __builtins__.basestring
 else:
     basestring = (bytes, str)
     unicode = str
+    long = int
 
 cdef void *libperl
 
@@ -32,6 +39,14 @@ cdef extern from "<Python.h>":
     Py_ssize_t Py_REFCNT(object)
 
 
+cdef char* PyBaseString_AsString(s):
+    if PyBytes_Check(s):
+        return PyBytes_AS_STRING(s)
+    if PyUnicode_Check(s):
+        return PyBytes_AS_STRING(PyUnicode_AsUTF8String(s))
+    raise TypeError("unsupported non basestring type of " + str(type(s)))
+
+
 cdef char** to_cstring_array(list_of_str):
     cdef Py_ssize_t size = len(list_of_str), i
     cdef char ** ret = <char**> PyMem_Malloc(size * sizeof(char*))
@@ -39,13 +54,16 @@ cdef char** to_cstring_array(list_of_str):
         raise MemoryError("can not allocate memory")
 
     for i in range(size):
-        ret[i] = PyString_AsString(list_of_str[i])
+        ret[i] = PyBaseString_AsString(list_of_str[i])
     return ret
+
 
 cdef int __put_stack(Context ctx, object obj, vector[perl5.SV*]& arg_stack) except -1:
     perl5.INIT_SET_MY_PERL(ctx.vm.my_perl)
 
-    cdef perl5.SV *sv_key, *sv_value
+    cdef:
+        perl5.SV *sv_key
+        perl5.SV *sv_value
 
     if isinstance(obj, BaseProxy):
         sv_value = get_sv_from_capsule(obj.perl_capped_sv)
@@ -74,14 +92,10 @@ cdef inline int __perl_call(Context ctx, object package_or_proxy, object subrout
     perl5.INIT_SET_MY_PERL(ctx.vm.my_perl)
 
     cdef perl5.SV *sv
-    cdef char *c_subroutine_name
-    cdef perl5.I32 flag = 0
-
-    flag = perl5.G_ARRAY | perl5.G_EVAL
+    cdef char *c_subroutine_name = PyBaseString_AsString(subroutine)
+    cdef perl5.I32 flag = perl5.G_ARRAY | perl5.G_EVAL
 
     if package_or_proxy is not None:
-        c_subroutine_name = <char*> subroutine
-
         with nogil:
             num_of_args = perl5.call_method(c_subroutine_name, flag)
 
@@ -195,7 +209,9 @@ cdef class BaseProxy:
             self.__perl_package__, id(self))
 
     def __richcmp__(self, other, operation):
-        cdef perl5.SV *sv_a, *sv_b
+        cdef:
+            perl5.SV *sv_a
+            perl5.SV *sv_b
 
         if operation == 2 or operation == 3:  # ==
             if isinstance(other, BaseProxy):
@@ -218,7 +234,9 @@ cdef class Proxy(BaseProxy):
 
     def __cinit__(self, Context ctx, object capped_sv, *args, **kwargs):
         perl5.INIT_SET_MY_PERL(ctx.vm.my_perl)
-        cdef perl5.SV *rv, *sv
+        cdef:
+            perl5.SV *rv
+            perl5.SV *sv
 
         if PyCapsule_CheckExact(capped_sv):
             rv = get_sv_from_capsule(capped_sv)
@@ -226,14 +244,16 @@ cdef class Proxy(BaseProxy):
             self.__perl_package__ = perl5.HvNAME(perl5.SvSTASH(sv)).decode("UTF-8")
 
         elif isinstance(capped_sv, basestring):
-            sv = perl5.newSVpvn(capped_sv, len(capped_sv))
+            sv = PyString2SV(ctx, capped_sv)
             self.perl_capped_sv = make_perl_sv_capsule(ctx.vm, sv)
             self.__perl_package__ = capped_sv
 
         self.__perl_members__ = {}
 
     def __perl_data__(self):
-        cdef perl5.SV *rv, *sv
+        cdef:
+            perl5.SV *rv
+            perl5.SV *sv
 
         rv = get_sv_from_capsule(self.perl_capped_sv)
         sv = perl5.SvRV(rv)
@@ -404,7 +424,7 @@ cdef class TypeMapper:
         :return: converted object or perl object Proxy
         :rtype: object or Proxy
         """
-        if isinstance(obj, file) and hasattr(obj, "fileno"):
+        if isinstance(obj, IOBase) and hasattr(obj, "fileno") and hasattr(obj, "mode"):
             ret = self.vm.new(self.FILE_PACKAGE)
             fd = os.dup(obj.fileno())
             ret.fdopen(fd, obj.mode)
@@ -441,6 +461,7 @@ cdef class TypeMapper:
 
         # ref is subclass of BaseProxy
         return ref
+
 
 cdef class Loader:
     PACKAGE = "PyPerl5::Loader"
@@ -487,7 +508,8 @@ cdef class _VMManager:
     def __cinit__(self):
         cdef:
             int argc = 0
-            char ** argv, ** env
+            char ** argv
+            char ** env
 
         perl5.PERL_SYS_INIT3(&argc, &argv, &env)
 
@@ -504,7 +526,7 @@ ctypedef api class VM[object PyPerl5VM, type PyPerl5VMType]:
     _manager = _VMManager()
 
     cdef perl5.PerlInterpreter *my_perl
-    cdef readonly bool closed
+    cdef readonly bint closed
     cdef public Loader loader
     cdef public TypeMapper type_mapper
     cdef readonly object _vm_lock
@@ -530,7 +552,7 @@ ctypedef api class VM[object PyPerl5VM, type PyPerl5VMType]:
         self.closed = False
         self._manager.up()
 
-    def __init__(self, type loader_class=Loader, type type_mapper_class=TypeMapper, lib_path=None):
+    def __init__(self, type loader_class=Loader, type type_mapper_class=TypeMapper, include_directory=None):
         perl5.INIT_SET_MY_PERL(self.my_perl)
         cdef int exit_status
         cdef char ** c_boot_args
@@ -540,12 +562,19 @@ ctypedef api class VM[object PyPerl5VM, type PyPerl5VMType]:
         self._vm_lock = RLock()
 
         self.loader = loader_class(self)
-
         vm = self.my_perl
 
-        boot_args = ["", "-M" + self.loader.package, "-e", "0"]
-        c_boot_args = to_cstring_array(boot_args)
+        boot_args = ["", "-M"+self.loader.package]
+        if include_directory:
+            if isinstance(include_directory, basestring):
+                boot_args.append("-I"+include_directory)
+            else:
+                boot_args.extend(["-I"+p for p in include_directory])
 
+        # perlembed docs use "0". but parse error.
+        boot_args.extend(["-e", ""])
+
+        c_boot_args = to_cstring_array(boot_args)
         exit_status = perl5.perl_parse(vm, perl5.perl5_module_xs_init, len(boot_args), c_boot_args, NULL)
 
         PyMem_Free(c_boot_args)
@@ -567,7 +596,8 @@ ctypedef api class VM[object PyPerl5VM, type PyPerl5VMType]:
                 self.type_mapper = type_mapper
 
         else:
-            raise RuntimeError("perl_parse error. exit_status = " + str(exit_status))
+            raise RuntimeError(
+                "perl_parse error. exit_status = ({}). boot_args = '{}'".format(exit_status, " ".join(boot_args)))
 
     def __dealloc__(self):
         if not self.closed and hasattr(self, "close"):
@@ -648,20 +678,17 @@ ctypedef api class VM[object PyPerl5VM, type PyPerl5VMType]:
 
         with self._vm_lock:
             ret = None
-            perl5.dSP;
-            perl5.ENTER;
-            perl5.SAVETMPS;
-            perl5.PUSHMARK(perl5.SP)
+            perl5.PERL5_SETUP_CALL_SUB()
 
             if num_of_args:
                 perl5.EXTEND(perl5.SP, num_of_args)
                 for sv in arg_stack:
                     perl5.PUSHs(sv)
-                perl5.PUTBACK;
+                perl5.PERL5_PUTBACK()
 
             num_of_args = __perl_call(ctx, package_or_proxy, subroutine)
 
-            perl5.SPAGAIN;
+            perl5.PERL5_SPAGAIN()
 
             try:
                 if num_of_args == 1:
@@ -684,9 +711,7 @@ ctypedef api class VM[object PyPerl5VM, type PyPerl5VMType]:
                         Py_INCREF(obj)
                         PyTuple_SET_ITEM(ret, num_of_args - i - 1, obj)
             finally:
-                perl5.PUTBACK;
-                perl5.FREETMPS;
-                perl5.LEAVE;
+                perl5.PERL5_CLEANUP_CALL_SUB()
 
             __perl_error_check(ctx)
 
@@ -705,14 +730,11 @@ ctypedef api class VM[object PyPerl5VM, type PyPerl5VMType]:
 
         with self._vm_lock:
             ret = None
-            perl5.dSP;
-            perl5.ENTER;
-            perl5.SAVETMPS;
-            perl5.PUSHMARK(perl5.SP)
+            perl5.PERL5_SETUP_CALL_SUB()
 
             num_of_ret = perl5.eval_sv(sv, perl5.G_ARRAY | perl5.G_EVAL)
 
-            perl5.SPAGAIN;
+            perl5.PERL5_SPAGAIN()
 
             try:
                 if num_of_ret == 1:
@@ -727,9 +749,7 @@ ctypedef api class VM[object PyPerl5VM, type PyPerl5VMType]:
                         ret[num_of_ret - i - 1] = obj
                     ret = tuple(ret)
             finally:
-                perl5.PUTBACK;
-                perl5.FREETMPS;
-                perl5.LEAVE;
+                perl5.PERL5_CLEANUP_CALL_SUB()
 
             __perl_error_check(ctx)
 

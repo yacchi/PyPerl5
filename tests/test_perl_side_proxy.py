@@ -6,7 +6,7 @@ import unittest
 import perl5
 
 
-class TestObject(object):
+class ProxyTestObject(object):
     def __init__(self, attr1):
         self._attr1 = attr1
 
@@ -16,7 +16,7 @@ class TestObject(object):
         self._attr1 = data
 
 
-def test_func(arg):
+def proxy_test_func(arg):
     return arg
 
 
@@ -32,12 +32,12 @@ sub unit_test {
     $ut->assertTrue(true);
     $ut->assertFalse(false);
     
-    $ut->assertItemsEqual([1, true], [1, true]);
+    $ut->assertEqual([1, true], [1, true]);
 }
 
 sub unit_test2 {
     my $ut = shift;
-    my $class = py_get_object("test.test_perl_side_proxy.TestObject");
+    my $class = py_get_object("tests.test_perl_side_proxy.ProxyTestObject");
     $ut->assertTrue($class->isa("PyPerl5::Proxy"));
     
     my $o = $class->new("TEST");
@@ -48,7 +48,7 @@ sub unit_test2 {
 
 sub unit_test3 {
     my $ut = shift;
-    my $f = py_get_object("test.test_perl_side_proxy.test_func");
+    my $f = py_get_object("tests.test_perl_side_proxy.proxy_test_func");
     my $ret = $f->("call");
     $ut->assertEqual("call", $ret); 
 }

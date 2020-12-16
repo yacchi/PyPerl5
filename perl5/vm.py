@@ -1,24 +1,28 @@
-import _perl5
-import os
+# -*- coding: utf-8 -*-
+from __future__ import absolute_import
+
 import datetime
-import time
+
+# noinspection PyUnresolvedReferences,PyProtectedMember
+from ._lib import _perl as perl5
+from .vendor_perl import PERL_PACKAGE
 
 __version__ = 1.0
 
 
-class Loader(_perl5.Loader):
+class Loader(perl5.Loader):
     PACKAGE = "PyPerl5::Loader"
 
 
-class Proxy(_perl5.Proxy):
+class Proxy(perl5.Proxy):
     pass
 
 
-class CodeRefProxy(_perl5.CodeRefProxy):
+class CodeRefProxy(perl5.CodeRefProxy):
     pass
 
 
-class TypeMapper(_perl5.TypeMapper):
+class TypeMapper(perl5.TypeMapper):
     BOOLEAN_PACKAGE = "PyPerl5::Boolean"
 
     object_proxy = Proxy
@@ -90,9 +94,9 @@ class TypeMapper(_perl5.TypeMapper):
         return super(TypeMapper, self).map_to_python(ctx, ref)
 
 
-class VM(_perl5.VM):
-    def __init__(self, loader_cls=Loader, type_mapper_cls=TypeMapper):
-        super(VM, self).__init__(loader_cls, type_mapper_cls)
+class VM(perl5.VM):
+    def __init__(self, loader_cls=Loader, type_mapper_cls=TypeMapper, include_directory=PERL_PACKAGE):
+        super(VM, self).__init__(loader_cls, type_mapper_cls, include_directory)
 
     def call(self, subroutine, *args, **kwargs):
         if args:

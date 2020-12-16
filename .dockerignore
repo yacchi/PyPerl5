@@ -1,0 +1,12 @@
+perl/*.c
+perl/*.cpp
+ppport.h
+
+# Cython project
+
+src/perl5module.cpp
+src/perl5module.h
+src/perl5module_api.h
+
+**/__pycache__/
+*.py[co]
