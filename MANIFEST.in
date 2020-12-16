@@ -3,7 +3,7 @@
 # include test/__init__.py
 recursive-include src *.pyx *.c *.h *.pxd
 recursive-include perl *.pm *.xs *.PL MANIFEST
-recursive-include perl5 *.pm *.bundle *.so *.bs *.dll *.pyx *.pxd *.h *.c
+recursive-include perl5 *.pm *.bundle *.so *.bs *.dll *.pyx *.pxd *.h *.c *.pyi
 
 include README* LICENSE
 

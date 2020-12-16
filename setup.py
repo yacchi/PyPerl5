@@ -108,9 +108,6 @@ class Build(build_ext, object):
         return outputs
 
 
-with open("README.rst") as f:
-    readme = f.read()
-
 if __name__ == "__main__":
     setup(
         version=version,

@@ -43,5 +43,6 @@ class TestCase(unittest.TestCase):
         ret = self.vm.call("thread_test", 10)
         self.assertEqual(ret, 10)
 
+
 if __name__ == '__main__':
     unittest.main()

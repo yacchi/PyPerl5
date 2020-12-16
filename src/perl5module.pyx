@@ -44,7 +44,7 @@ cdef char* PyBaseString_AsString(s):
         return PyBytes_AS_STRING(s)
     if PyUnicode_Check(s):
         return PyBytes_AS_STRING(PyUnicode_AsUTF8String(s))
-    raise TypeError("unsupported non basestring type of " + str(type(s)))
+    raise TypeError("unsupported non basestring type of " + str(s) + " " + str(type(s)))
 
 
 cdef char** to_cstring_array(list_of_str):
@@ -92,10 +92,11 @@ cdef inline int __perl_call(Context ctx, object package_or_proxy, object subrout
     perl5.INIT_SET_MY_PERL(ctx.vm.my_perl)
 
     cdef perl5.SV *sv
-    cdef char *c_subroutine_name = PyBaseString_AsString(subroutine)
+    cdef char *c_subroutine_name
     cdef perl5.I32 flag = perl5.G_ARRAY | perl5.G_EVAL
 
     if package_or_proxy is not None:
+        c_subroutine_name = PyBaseString_AsString(subroutine)
         with nogil:
             num_of_args = perl5.call_method(c_subroutine_name, flag)
 
@@ -379,51 +380,12 @@ cdef class TypeMapper:
             return proxy_cls(ctx, capped_sv)
 
     def map_long_integer(self, ctx, obj):
-        """
-        Forward type mapping method.
-
-        Python      Perl
-        long   => Math::BigInt
-
-        :param ctx: Context object
-        :type ctx: Context
-        :param obj: source object
-        :type obj: object
-        :return: converted object or Proxy
-        :rtype: object or Proxy
-        """
         return self.vm.new(self.BIGINT_PACKAGE, (str(obj),))
 
     def map_complex(self, ctx, obj):
-        """
-        Forward type mapping method.
-
-        Python       Perl
-        complex => Math::Complex
-
-        :param ctx: Context object
-        :type ctx: Context
-        :param obj: source object
-        :type obj: object
-        :return: converted object or Proxy
-        :rtype: object or Proxy
-        """
         return self.vm.new(self.COMPLEX_PACKAGE, (obj.real, obj.imag))
 
     def map_from_python(self, ctx, obj):
-        """
-        Custom forward type mapping method.
-
-        Python    Perl
-        any    => any
-
-        :param ctx: Context object
-        :type ctx: Context
-        :param obj: source object
-        :type obj: object
-        :return: converted object or perl object Proxy
-        :rtype: object or Proxy
-        """
         if isinstance(obj, IOBase) and hasattr(obj, "fileno") and hasattr(obj, "mode"):
             ret = self.vm.new(self.FILE_PACKAGE)
             fd = os.dup(obj.fileno())
@@ -435,19 +397,6 @@ cdef class TypeMapper:
         # raise TypeError(str(type(obj)) + " is not supported type")
 
     def map_to_python(self, ctx, ref):
-        """
-        Custom reverse type mapping method.
-
-        Perl    Python  
-        any  => any    
-
-        :param ctx: Context object
-        :type ctx: Context
-        :param ref: perl object Proxy
-        :type ref: Proxy
-        :return: converted object or Proxy
-        :rtype: object or Proxy
-        """
         if ref.isa(self.BIGINT_PACKAGE):
             return long(ref.bstr())
 
