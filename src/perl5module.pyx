@@ -2,7 +2,8 @@
 from __future__ import absolute_import
 
 cdef extern from "config.h":
-    pass
+    cdef char* VERSION
+    cdef char* PERL5SV_CAPSULE_NAME
 
 cimport dlfcn
 # unsupported relative cimport in old cython on centos7
@@ -16,9 +17,6 @@ from libcpp.vector cimport vector
 import os
 from io import IOBase
 from threading import RLock
-
-DEF VERSION = b"1.00"
-DEF PERL5SV_CAPSULE_NAME = b"PERL5SV"
 
 __version__ = VERSION
 

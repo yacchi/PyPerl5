@@ -13,8 +13,8 @@ RUN pip2 install -U setuptools wheel pytest && \
     pip3 install -U --prefix / setuptools wheel Cython tox pytest
 RUN ln -s /usr/bin/python2 /usr/bin/python
 
-COPY ../../setup.* MANIFEST.in tox.ini ./
-COPY ../../src ./src
-COPY ../../tests ./tests
-COPY ../../perl5 ./perl5
-COPY ../../perl ./perl
+COPY setup.* meta.py MANIFEST.in tox.ini ./
+COPY src ./src
+COPY tests ./tests
+COPY perl5 ./perl5
+COPY perl ./perl

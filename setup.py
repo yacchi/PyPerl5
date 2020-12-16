@@ -26,6 +26,7 @@ from sys import platform
 from Cython.Distutils import build_ext
 from Cython.Distutils.extension import Extension
 from setuptools import setup
+from meta import VERSION
 
 
 def check_output(*popenargs, **kwargs):
@@ -40,8 +41,6 @@ elif platform == "win32":
     perl_lib_names = ["Proxy.dll"]
 else:
     perl_lib_names = ["Proxy.so"]
-
-version = "1.0"
 
 PERL_PACKAGE = "PyPerl5"
 PERL_LIB_DIR = os.path.join("perl", "lib")
@@ -78,6 +77,7 @@ class Build(build_ext, object):
 
     def run(self):
         os.environ["PYTHON_INC_DIR"] = get_python_inc()
+        os.environ["PY_PERL5_VERSION"] = VERSION
         call(["perl", "-MDevel::PPPort", "-e", "Devel::PPPort::WriteFile('src/ppport.h')"])
 
         # cythonize
@@ -90,7 +90,7 @@ class Build(build_ext, object):
 
         # copy perl libs into package dir
         targets = [
-            (os.path.join("perl", "lib"), os.path.join(self.build_lib, "perl5", "vendor_perl")),
+            (os.path.join("perl", "blib", "lib"), os.path.join(self.build_lib, "perl5", "vendor_perl")),
             (os.path.join("perl", "blib", "arch"), os.path.join(self.build_lib, "perl5", "vendor_perl")),
         ]
 
@@ -110,7 +110,6 @@ class Build(build_ext, object):
 
 if __name__ == "__main__":
     setup(
-        version=version,
         ext_modules=ext_modules,
         cmdclass={"build_ext": Build},
     )

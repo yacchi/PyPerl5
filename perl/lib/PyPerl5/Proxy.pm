@@ -34,10 +34,10 @@ our @EXPORT = qw(
 
     );
 
-our $VERSION = '0.01';
+our $VERSION = '__PY_PERL5_VERSION__';
 
 require XSLoader;
-XSLoader::load('PyPerl5::Proxy', $VERSION);
+XSLoader::load();
 
 # Preloaded methods go here.
 sub new {
