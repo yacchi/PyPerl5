@@ -25,7 +25,9 @@ from sys import platform
 
 from Cython.Distutils import build_ext
 from Cython.Distutils.extension import Extension
+from setuptools.command.bdist_rpm import bdist_rpm
 from setuptools import setup
+from meta import VERSION
 
 
 def check_output(*popenargs, **kwargs):
@@ -40,8 +42,6 @@ elif platform == "win32":
     perl_lib_names = ["Proxy.dll"]
 else:
     perl_lib_names = ["Proxy.so"]
-
-version = "1.0"
 
 PERL_PACKAGE = "PyPerl5"
 PERL_LIB_DIR = os.path.join("perl", "lib")
@@ -78,6 +78,7 @@ class Build(build_ext, object):
 
     def run(self):
         os.environ["PYTHON_INC_DIR"] = get_python_inc()
+        os.environ["PY_PERL5_VERSION"] = VERSION
         call(["perl", "-MDevel::PPPort", "-e", "Devel::PPPort::WriteFile('src/ppport.h')"])
 
         # cythonize
@@ -90,7 +91,7 @@ class Build(build_ext, object):
 
         # copy perl libs into package dir
         targets = [
-            (os.path.join("perl", "lib"), os.path.join(self.build_lib, "perl5", "vendor_perl")),
+            (os.path.join("perl", "blib", "lib"), os.path.join(self.build_lib, "perl5", "vendor_perl")),
             (os.path.join("perl", "blib", "arch"), os.path.join(self.build_lib, "perl5", "vendor_perl")),
         ]
 
@@ -108,9 +109,38 @@ class Build(build_ext, object):
         return outputs
 
 
+class BdistRPM(bdist_rpm, object):
+    user_options = bdist_rpm.user_options + [
+        ('name-suffix=', None, "Package name prefix"),
+    ]
+    name_suffix = None
+
+    def initialize_options(self):
+        super(BdistRPM, self).initialize_options()
+        self.name_suffix = None
+
+    def _make_spec_file(self):
+        spec = super(BdistRPM, self)._make_spec_file()
+
+        spec.insert(0, "%define name_suffix %{nil}")
+        for idx, val in enumerate(spec):
+            if val.startswith("Name:"):
+                val = "Name: %{name}%{name_suffix}"
+            spec[idx] = val.replace("%define name ", "%define _name ").replace("%{name}", "%{_name}")
+
+        return spec
+
+    def spawn(self, cmd, search_path=1, level=1):
+        if cmd[0] == "rpmbuild":
+            if self.name_suffix:
+                cmd.insert(2, "--define")
+                cmd.insert(3, "name_suffix " + self.name_suffix)
+        return super(BdistRPM, self).spawn(cmd, self, level)
+
+
 if __name__ == "__main__":
     setup(
-        version=version,
+        version=VERSION,
         ext_modules=ext_modules,
-        cmdclass={"build_ext": Build},
+        cmdclass={"build_ext": Build, "bdist_rpm": BdistRPM},
     )
