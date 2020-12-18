@@ -2,9 +2,11 @@
 
 PyPerl5 is a C-API based binding of perl5.
 
+Supported python versions are 2.7 or 3.6 or higher.
+
 ## Installation
 
-### From PyPI
+This package required python and perl development packages.
 
 ```shell script
 $ pip install py-perl5
